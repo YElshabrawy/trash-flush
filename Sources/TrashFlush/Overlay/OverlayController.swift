@@ -2,25 +2,19 @@ import AppKit
 import SwiftUI
 import TrashFlushCore
 
-/// Shows the flush animation on the display you are using, then removes it.
+/// Shows the flush animation beside the Dock's Trash, then removes it.
 /// The SwiftUI view is torn down afterwards, so nothing animates while idle.
 @MainActor
 final class OverlayController {
     private let panel = OverlayPanel()
     private var hideTask: Task<Void, Never>?
 
-    static let size = CGSize(width: 420, height: 500)
+    func play(_ event: FlushEvent, icons: [FileIconCache.Icon], theme: FlushTheme) {
+        guard let trash = DockTrashLocator.locate() else { return }
+        let (frame, scene) = FlushScene.layout(around: trash)
+        panel.setFrame(frame, display: false)
 
-    func play(_ event: FlushEvent, theme: FlushTheme) {
-        guard let screen = Self.screenUnderPointer() else { return }
-
-        let frame = screen.visibleFrame
-        panel.setFrame(NSRect(x: frame.midX - Self.size.width / 2,
-                              y: frame.midY - Self.size.height / 2,
-                              width: Self.size.width, height: Self.size.height),
-                       display: false)
-
-        let view = FlushView(event: event, theme: theme, start: .now)
+        let view = FlushView(event: event, icons: icons, theme: theme, scene: scene, start: .now)
         let host = NSHostingView(rootView: view)
         host.sizingOptions = []
         panel.contentView = host
@@ -33,11 +27,5 @@ final class OverlayController {
             self.panel.orderOut(nil)
             self.panel.contentView = nil
         }
-    }
-
-    private static func screenUnderPointer() -> NSScreen? {
-        let mouse = NSEvent.mouseLocation
-        return NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) }
-            ?? NSScreen.main ?? NSScreen.screens.first
     }
 }

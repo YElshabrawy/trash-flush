@@ -1,44 +1,49 @@
 import SwiftUI
 import TrashFlushCore
 
-/// The flush: a swirling bowl of water with your files spiraling down the drain.
+/// The flush: a toilet rises beside the Dock's Trash, your files arc into it,
+/// and it flushes them away.
 ///
-/// The bowl is one `Canvas` driven by `TimelineView(.animation)`, which redraws
-/// in sync with the display. `drawingGroup()` renders it with Metal, so the
-/// CPU only computes about a thousand points per frame.
+/// Everything is one `Canvas` driven by `TimelineView(.animation)`, which
+/// redraws in sync with the display. `drawingGroup()` renders it with Metal.
 struct FlushView: View {
     let event: FlushEvent
+    /// One per name in `event.sampleNames`.
+    let icons: [FileIconCache.Icon]
     let theme: FlushTheme
+    let scene: FlushScene
     let start: Date
+
+    /// More than this and the bowl gets crowded.
+    private static let maxFiles = 12
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let symbolNames = event.sampleNames.map(FileKind.symbolName(for:))
-        let renderer = VortexRenderer(palette: theme.palette, fileCount: symbolNames.count, reduceMotion: reduceMotion)
+        let icons = Array(icons.prefix(Self.maxFiles))
+        let renderer = ToiletRenderer(palette: theme.palette, scene: scene,
+                                      fileCount: icons.count, reduceMotion: reduceMotion)
 
         TimelineView(.animation) { timeline in
             let t = timeline.date.timeIntervalSince(start)
-            VStack(spacing: 20) {
-                Canvas { context, size in
-                    renderer.draw(in: &context, size: size, time: t)
+            ZStack(alignment: .topLeading) {
+                Canvas { context, _ in
+                    renderer.draw(in: &context, time: t)
                 } symbols: {
-                    ForEach(symbolNames.indices, id: \.self) { index in
-                        Image(systemName: symbolNames[index])
-                            .font(.system(size: 26, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .shadow(color: .black.opacity(0.45), radius: 2, y: 1)
+                    ForEach(icons.indices, id: \.self) { index in
+                        FileIconView(icon: icons[index])
                             .tag(index)
                     }
                 }
-                .frame(width: 380, height: 380)
                 .drawingGroup()
 
                 caption
+                    .fixedSize()
+                    .position(scene.captionCenter)
                     .opacity(FlushTimeline.caption(t))
-                    .offset(y: 10 * (1 - FlushTimeline.caption(t)))
+                    .offset(y: 8 * (1 - FlushTimeline.caption(t)))
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(width: scene.size.width, height: scene.size.height)
         }
         .environment(\.colorScheme, .dark)
         .allowsHitTesting(false)
@@ -47,16 +52,40 @@ struct FlushView: View {
     private var caption: some View {
         VStack(spacing: 2) {
             Text(event.itemCount == 1 ? "Flushed 1 item" : "Flushed \(event.itemCount) items")
-                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .font(.system(size: 17, weight: .bold, design: .rounded))
             if event.bytes > 0 {
                 Text("\(event.bytes.formatted(.byteCount(style: .file))) freed")
-                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)
             }
         }
         .foregroundStyle(.white)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 9)
         .background(.ultraThinMaterial, in: Capsule())
+    }
+}
+
+/// A file as Finder shows it: its icon, or a content preview in a thin white
+/// frame for photos and documents.
+private struct FileIconView: View {
+    let icon: FileIconCache.Icon
+
+    var body: some View {
+        if icon.isThumbnail {
+            Image(nsImage: icon.image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 2))
+                .padding(1.5)
+                .background(.white, in: RoundedRectangle(cornerRadius: 3))
+                .frame(maxWidth: 28, maxHeight: 28)
+                .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
+        } else {
+            Image(nsImage: icon.image)
+                .resizable()
+                .frame(width: 32, height: 32)
+                .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
+        }
     }
 }

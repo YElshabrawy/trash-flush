@@ -34,6 +34,15 @@ struct MenuContentView: View {
                     .disabled(!LoginItem.isAvailable)
                     .help(LoginItem.isAvailable ? Text("Start Trash Flush when you log in")
                                                 : Text("Available when running the built TrashFlush.app"))
+                if !model.locatesTrashPrecisely {
+                    HStack {
+                        Text("Exact Dock Trash position")
+                        Spacer()
+                        Button("Allow…") { model.allowDockAccess() }
+                            .controlSize(.small)
+                    }
+                    .help("The toilet appears next to the Trash in your Dock. Without Accessibility access its position is estimated.")
+                }
             }
 
             Divider()

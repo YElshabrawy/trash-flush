@@ -12,6 +12,7 @@ import Testing
             #expect(b.angle >= a.angle)
         }
         #expect(steps.first?.radius == 0.9)
+        #expect(steps.first?.opacity == 1)
         #expect(steps.last?.radius == 0)
         #expect(steps.last?.opacity == 0)
         let earlySpin = steps[2].angle - steps[1].angle
@@ -24,11 +25,32 @@ import Testing
         #expect(Vortex.armPoint(u: 1, phase: 0).radius == 0)
     }
 
-    @Test func timelineFadesOutCompletely() {
-        #expect(FlushTimeline.opacity(0) == 1)
-        #expect(FlushTimeline.opacity(FlushTimeline.total) == 0)
-        #expect(FlushTimeline.particleProgress(index: 9, count: 10, at: 2.71) == 1)
-        #expect(FlushTimeline.particleProgress(index: 0, count: 1, at: 0) == 0)
+    @Test func flightArcsFromTrashIntoBowl() {
+        let trash = Flight.Point(x: 300, y: 400)
+        let bowl = Flight.Point(x: 150, y: 250)
+        let control = Flight.Point(x: 225, y: 100)
+        #expect(Flight.position(progress: 0, from: trash, control: control, to: bowl) == trash)
+        #expect(Flight.position(progress: 1, from: trash, control: control, to: bowl) == bowl)
+        let middle = Flight.position(progress: 0.5, from: trash, control: control, to: bowl)
+        #expect(middle.y < bowl.y)
+        #expect(Flight.scale(progress: 1) == 1)
+        #expect(Flight.scale(progress: 0.5) > 1)
+    }
+
+    @Test func timelineRunsInOrder() {
+        #expect(FlushTimeline.appear(0) == 0)
+        #expect(FlushTimeline.exit(FlushTimeline.total) == 1)
+        #expect(FlushTimeline.caption(FlushTimeline.total) == 0)
+        #expect(FlushTimeline.waterLevel(0) == 1)
+        #expect(FlushTimeline.waterLevel(FlushTimeline.total) == 1)
+
+        for count in [1, 5, 18] {
+            let last = count - 1
+            #expect(FlushTimeline.flightProgress(index: 0, count: count, at: 0.3) == 0)
+            #expect(FlushTimeline.flightProgress(index: last, count: count, at: FlushTimeline.flushStart) == 1)
+            #expect(FlushTimeline.sinkProgress(index: 0, count: count, at: FlushTimeline.flushStart) == 0)
+            #expect(FlushTimeline.sinkProgress(index: last, count: count, at: 3.4) == 1)
+        }
     }
 
     @Test func statsAccumulate() {
@@ -39,11 +61,5 @@ import Testing
         #expect(stats.itemsFlushed == 5)
         #expect(stats.bytesFlushed == 350)
         #expect(stats.lastFlush != nil)
-    }
-
-    @Test func fileKindsPickSensibleIcons() {
-        #expect(FileKind.symbolName(for: "Holiday.HEIC") == "photo.fill")
-        #expect(FileKind.symbolName(for: "Old Project") == "folder.fill")
-        #expect(FileKind.symbolName(for: "notes.weird") == "doc.fill")
     }
 }

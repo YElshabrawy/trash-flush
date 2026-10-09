@@ -20,6 +20,8 @@ final class TrashMonitor {
     private(set) var snapshot: TrashSnapshot = .empty
     /// Called on the main actor when the Trash goes from full to empty.
     @ObservationIgnored var onFlush: ((FlushEvent) -> Void)?
+    /// Called on the main actor after every scan, once any flush was reported.
+    @ObservationIgnored var onSnapshot: ((TrashSnapshot) -> Void)?
 
     let folder: TrashFolder
     @ObservationIgnored private var source: DispatchSourceFileSystemObject?
@@ -110,6 +112,7 @@ final class TrashMonitor {
             if let event = detector.observe(newSnapshot) {
                 onFlush?(event)
             }
+            onSnapshot?(newSnapshot)
         case .failure:
             access = .denied
         }
