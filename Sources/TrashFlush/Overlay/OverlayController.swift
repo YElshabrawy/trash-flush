@@ -11,21 +11,30 @@ final class OverlayController {
     private var tracker: TrashTracker?
 
     /// Starts the animation and returns its timeline, so the sound can follow it.
-    func play(_ event: FlushEvent, icons: [FileIconCache.Icon]) -> NotchTimeline? {
+    func play(_ event: FlushEvent, icons: [FileIconCache.Icon], animation: FlushAnimation) -> (any FlushTimeline)? {
         guard let trash = DockTrashLocator.locate() else { return nil }
         let (frame, scene) = NotchScene.layout(around: trash)
-        let timeline = NotchTimeline(itemCount: event.itemCount, peeksTrash: scene.peeksTrash,
-                                     reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         panel.setFrame(frame, display: false)
 
         tracker?.stop()
         let tracker = trash.isExact && !trash.isAutoHidden ? TrashTracker(center: scene.trash, overlay: frame) : nil
         self.tracker = tracker
 
-        let view = NotchFlushView(event: event, icons: icons, scene: scene, timeline: timeline, start: .now,
-                                  tracker: tracker)
-        let host = NSHostingView(rootView: view)
-        host.sizingOptions = []
+        let timeline: any FlushTimeline
+        let host: NSView
+        switch animation {
+        case .notch:
+            let notch = NotchTimeline(itemCount: event.itemCount, peeksTrash: scene.peeksTrash, reduceMotion: reduceMotion)
+            timeline = notch
+            host = hosting(NotchFlushView(event: event, icons: icons, scene: scene, timeline: notch,
+                                          start: .now, tracker: tracker))
+        case .truck:
+            let truck = TruckTimeline(itemCount: event.itemCount, peeksTrash: scene.peeksTrash, reduceMotion: reduceMotion)
+            timeline = truck
+            host = hosting(TruckFlushView(event: event, icons: icons, scene: scene, timeline: truck,
+                                          start: .now, tracker: tracker))
+        }
         panel.contentView = host
         panel.orderFrontRegardless()
 
@@ -39,5 +48,12 @@ final class OverlayController {
             self.panel.contentView = nil
         }
         return timeline
+    }
+
+    /// The overlay is exactly the screen; the view never resizes the window.
+    private func hosting(_ view: some View) -> NSView {
+        let host = NSHostingView(rootView: view)
+        host.sizingOptions = []
+        return host
     }
 }

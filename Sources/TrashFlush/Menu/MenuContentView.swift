@@ -27,6 +27,16 @@ struct MenuContentView: View {
             Divider()
 
             VStack(spacing: 8) {
+                HStack {
+                    Text("Animation")
+                    Spacer()
+                    Picker("Animation", selection: $model.animation) {
+                        ForEach(FlushAnimation.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
+                    .controlSize(.small)
+                }
                 SettingRow(title: "Flush sound", isOn: $model.soundEnabled)
                 HStack {
                     Text("Smelly Trash at")

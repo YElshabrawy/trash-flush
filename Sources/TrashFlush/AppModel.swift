@@ -32,6 +32,10 @@ final class AppModel {
         }
     }
 
+    var animation: FlushAnimation {
+        didSet { defaults.set(animation.rawValue, forKey: Keys.animation) }
+    }
+
     let menuBarIcon = MenuBarIcon()
 
     var fullness: TrashFullness {
@@ -49,12 +53,14 @@ final class AppModel {
         static let soundEnabled = "soundEnabled"
         static let stats = "stats"
         static let trashLimit = "trashLimit"
+        static let animation = "animation"
     }
 
     init() {
         let defaults = UserDefaults.standard
         soundEnabled = defaults.object(forKey: Keys.soundEnabled) as? Bool ?? true
         trashLimit = (defaults.object(forKey: Keys.trashLimit) as? NSNumber)?.int64Value ?? TrashFullness.defaultLimit
+        animation = defaults.string(forKey: Keys.animation).flatMap(FlushAnimation.init(rawValue:)) ?? .notch
         stats = defaults.data(forKey: Keys.stats)
             .flatMap { try? JSONDecoder().decode(FlushStats.self, from: $0) } ?? FlushStats()
         icons = FileIconCache(folder: monitor.folder.url)
@@ -146,7 +152,8 @@ final class AppModel {
     }
 
     private func play(_ event: FlushEvent) {
-        guard let timeline = overlay.play(event, icons: icons.icons(for: event.sampleNames)) else { return }
+        guard let timeline = overlay.play(event, icons: icons.icons(for: event.sampleNames), animation: animation)
+        else { return }
         if soundEnabled { sound.play(timeline) }
     }
 

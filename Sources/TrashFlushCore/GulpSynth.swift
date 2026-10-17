@@ -51,7 +51,7 @@ public enum GulpSynth {
 
     /// A sine that glides up into its pitch in about 20 ms: the shape of a
     /// water drop. A touch of octave gives it a rounder, marimba-like body.
-    private static func addBloop(at start: Double, frequency f: Double, gain: Double, decay: Double,
+    static func addBloop(at start: Double, frequency f: Double, gain: Double, decay: Double,
                                  to out: inout [Float], sampleRate sr: Double) {
         render(at: start, length: decay * 7, into: &out, sampleRate: sr) { t, phase in
             let pitch = f * (1 - 0.3 * exp(-t / 0.02))
@@ -61,7 +61,7 @@ public enum GulpSynth {
         }
     }
 
-    private static func addThump(at start: Double, to out: inout [Float], sampleRate sr: Double) {
+    static func addThump(at start: Double, to out: inout [Float], sampleRate sr: Double) {
         render(at: start, length: 0.25, into: &out, sampleRate: sr) { t, phase in
             phase += 2 * .pi * (110 + 60 * (1 - exp(-t / 0.03))) / sr
             return 0.3 * min(1, t / 0.006) * exp(-t / 0.05) * sin(phase)
@@ -69,7 +69,7 @@ public enum GulpSynth {
     }
 
     /// Partials at 1×, 2× and 3×, with the upper ones fading first.
-    private static func addBell(at start: Double, frequency f: Double, gain: Double,
+    static func addBell(at start: Double, frequency f: Double, gain: Double,
                                 to out: inout [Float], sampleRate sr: Double) {
         render(at: start, length: 1.6, into: &out, sampleRate: sr) { t, phase in
             phase += 2 * .pi * f / sr
@@ -79,7 +79,7 @@ public enum GulpSynth {
     }
 
     /// Adds `voice(time, &phase)` to `out` from `start` for `length` seconds.
-    private static func render(at start: Double, length: Double, into out: inout [Float], sampleRate sr: Double,
+    static func render(at start: Double, length: Double, into out: inout [Float], sampleRate sr: Double,
                                voice: (Double, inout Double) -> Double) {
         let first = Int(start * sr)
         guard first >= 0 else { return }
@@ -90,7 +90,7 @@ public enum GulpSynth {
     }
 
     /// One soft repeat, like a small room.
-    private static func addEcho(to out: inout [Float], delay: Double, amount: Float, sampleRate sr: Double) {
+    static func addEcho(to out: inout [Float], delay: Double, amount: Float, sampleRate sr: Double) {
         let offset = Int(delay * sr)
         guard offset < out.count else { return }
         for i in offset..<out.count {
@@ -98,7 +98,7 @@ public enum GulpSynth {
         }
     }
 
-    private static func normalize(_ samples: inout [Float], to target: Float) {
+    static func normalize(_ samples: inout [Float], to target: Float) {
         let peak = samples.reduce(0) { max($0, abs($1)) }
         guard peak > target else { return }
         let gain = target / peak

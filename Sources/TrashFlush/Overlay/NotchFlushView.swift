@@ -112,12 +112,6 @@ struct NotchFlushView: View {
     }
 }
 
-/// Canvas symbol tags. Files use their index (0 and up).
-private enum Symbol {
-    static let trashFull = -1
-    static let trashEmpty = -2
-}
-
 /// Draws the flying files and the stand-in Trash for one frame.
 ///
 /// A plain struct rather than View methods: it holds only values, so the
@@ -128,27 +122,20 @@ private struct FlightRenderer {
     let iconCount: Int
 
     func draw(in context: inout GraphicsContext, time t: Double, state: NotchState, dockTrash: CGPoint) {
+        let thrower = TrashThrow(scene: scene, iconCount: iconCount)
         let trash = scene.peeksTrash ? scene.standIn(offset: state.trashOffset) : dockTrash
 
-        // Files climb out of the Dock's own Trash. It can't be hidden or covered
-        // cleanly (it's glass), so anything still inside the can is masked out.
         var files = context
-        if !scene.peeksTrash {
-            files.clip(to: outside(can: trash), style: FillStyle(eoFill: true))
-        }
-        if iconCount > 0 {
-            for flight in timeline.flights where flight.emergence(at: t) > 0 && t < flight.start {
-                drawEmerging(flight, in: &files, trash: trash, time: t)
-            }
-        }
+        thrower.maskInside(&files, trash: trash)
+        thrower.drawEmerging(timeline.flights, in: &files, trash: trash, time: t)
         // The stand-in goes over the files still climbing out, so they rise over its rim.
         if scene.peeksTrash, state.trashOffset < 0.999 {
-            drawTile(in: &context, around: trash)
-            drawTrash(in: &context, at: trash, time: t, puff: state.trashPuff)
+            let emptied = timeline.flights.last.map { t >= $0.start } ?? true
+            thrower.drawStandIn(in: &context, at: trash, emptied: emptied, puff: state.trashPuff)
         }
         guard iconCount > 0 else { return }
 
-        let start = point(rim(of: scene.peeksTrash ? scene.trash : dockTrash))
+        let start = point(thrower.rim(of: scene.peeksTrash ? scene.trash : dockTrash))
         let aim = point(scene.mouth(height: scene.style.notice.height))
         let mouth = point(scene.mouth(height: state.size.height))
         for flight in timeline.flights where flight.start <= t && t < flight.arrival {
@@ -173,58 +160,6 @@ private struct FlightRenderer {
         }
     }
 
-    /// Where files leave the Trash: the top of the can. Dock icons stay upright
-    /// on every edge, so that is always straight up from the center.
-    private func rim(of trash: CGPoint) -> CGPoint {
-        CGPoint(x: trash.x, y: trash.y - scene.trashIconSize * 0.35)
-    }
-
-    /// Everything but the inside of the can, from its rim down past the screen edge.
-    private func outside(can center: CGPoint) -> Path {
-        let width = scene.trashIconSize + NotchScene.fileSize * 2
-        let rim = rim(of: center)
-        var path = Path(CGRect(origin: .zero, size: scene.size))
-        path.addRect(CGRect(x: center.x - width / 2, y: rim.y, width: width, height: scene.size.height - rim.y))
-        return path
-    }
-
-    /// A small file rising up to the rim, from the middle of the stand-in, or
-    /// from just out of sight inside the Dock's Trash.
-    private func drawEmerging(_ flight: NotchTimeline.Flight, in context: inout GraphicsContext,
-                              trash: CGPoint, time t: Double) {
-        guard let icon = context.resolveSymbol(id: flight.index % iconCount) else { return }
-        let rise = 1 - pow(1 - flight.emergence(at: t), 2)
-        let scale = FlightPath.scale(progress: 0, isMini: flight.isMini)
-        let top = rim(of: trash)
-        let bottom = scene.peeksTrash ? trash : CGPoint(x: top.x, y: top.y + NotchScene.fileSize * scale / 2)
-        var file = context
-        file.translateBy(x: bottom.x + (top.x - bottom.x) * rise, y: bottom.y + (top.y - bottom.y) * rise)
-        file.scaleBy(x: scale, y: scale)
-        file.draw(icon, at: .zero, anchor: .center)
-    }
-
-    /// The Trash, full until the last file leaves. It puffs up from its base
-    /// each time it throws one, and never shrinks below the Dock's own icon.
-    private func drawTrash(in context: inout GraphicsContext, at center: CGPoint, time t: Double, puff: Double) {
-        let emptied = timeline.flights.last.map { t >= $0.start } ?? true
-        guard let trash = context.resolveSymbol(id: emptied ? Symbol.trashEmpty : Symbol.trashFull) else { return }
-        let icon = scene.trashIconSize
-        var puffed = context
-        puffed.translateBy(x: center.x, y: center.y + icon / 2)
-        puffed.scaleBy(x: 1 + puff * 0.5, y: 1 + puff)
-        puffed.draw(trash, at: CGPoint(x: 0, y: -icon / 2), anchor: .center)
-    }
-
-    /// A one-icon Dock that slides out from the screen edge, like the real
-    /// Dock does when you hover there.
-    private func drawTile(in context: inout GraphicsContext, around center: CGPoint) {
-        let icon = scene.trashIconSize
-        let tile = CGRect(x: center.x - icon / 2 - 6, y: center.y - icon / 2 - 6, width: icon + 12, height: icon + 12)
-        let shape = Path(roundedRect: tile, cornerRadius: 16, style: .continuous)
-        context.fill(shape, with: .color(.white.opacity(0.2)))
-        context.stroke(shape, with: .color(.white.opacity(0.3)), lineWidth: 1)
-    }
-
     private func point(_ p: CGPoint) -> FlightPath.Point { FlightPath.Point(x: p.x, y: p.y) }
     private func point(_ v: CGVector) -> FlightPath.Point { FlightPath.Point(x: v.dx, y: v.dy) }
 }
@@ -235,9 +170,10 @@ private extension FlightPath.Point {
 }
 
 /// "Flushed 12 items · 734 MB freed", next to a little fan of the files.
-private struct IslandContent: View {
+struct IslandContent: View {
     let event: FlushEvent
     let icons: [FileIconCache.Icon]
+    var verb = "Flushed"
 
     var body: some View {
         HStack(spacing: 12) {
@@ -252,7 +188,7 @@ private struct IslandContent: View {
             .frame(width: 44, height: 40)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(event.itemCount == 1 ? "Flushed 1 item" : "Flushed \(event.itemCount) items")
+                Text(event.itemCount == 1 ? "\(verb) 1 item" : "\(verb) \(event.itemCount) items")
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                 if event.bytes > 0 {
                     Text("\(event.bytes.formatted(.byteCount(style: .file))) freed")
@@ -268,7 +204,7 @@ private struct IslandContent: View {
 
 /// A file as Finder shows it: its icon, or a content preview in a thin white
 /// frame for photos and documents.
-private struct FileIconView: View {
+struct FileIconView: View {
     let icon: FileIconCache.Icon
 
     var body: some View {
