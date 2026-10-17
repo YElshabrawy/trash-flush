@@ -34,6 +34,11 @@ final class OverlayController {
             timeline = truck
             host = hosting(TruckFlushView(event: event, icons: icons, scene: scene, timeline: truck,
                                           start: .now, tracker: tracker))
+        case .toilet:
+            let toilet = ToiletTimeline(itemCount: event.itemCount, peeksTrash: scene.peeksTrash, reduceMotion: reduceMotion)
+            timeline = toilet
+            host = hosting(ToiletFlushView(event: event, icons: icons, scene: scene, timeline: toilet,
+                                           start: .now, tracker: tracker))
         }
         panel.contentView = host
         panel.orderFrontRegardless()

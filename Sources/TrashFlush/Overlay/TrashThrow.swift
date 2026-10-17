@@ -6,6 +6,7 @@ enum Symbol {
     static let trashFull = -1
     static let trashEmpty = -2
     static let recycle = -3
+    static let toilet = -4
 }
 
 /// Files leaving the Trash, the same in every animation: they climb out of the

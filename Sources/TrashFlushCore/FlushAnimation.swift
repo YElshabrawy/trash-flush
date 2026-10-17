@@ -6,11 +6,14 @@ public enum FlushAnimation: String, CaseIterable, Sendable {
     case notch
     /// A garbage truck drives along the Dock and picks them up.
     case truck
+    /// A toilet pops up by the Trash and they get flushed.
+    case toilet
 
     public var title: String {
         switch self {
         case .notch: "Notch gulp"
         case .truck: "Garbage truck"
+        case .toilet: "Toilet flush"
         }
     }
 }
@@ -29,4 +32,8 @@ extension NotchTimeline: FlushTimeline {
 
 extension TruckTimeline: FlushTimeline {
     public func soundtrack() -> [Float] { TruckSynth.render(self) }
+}
+
+extension ToiletTimeline: FlushTimeline {
+    public func soundtrack() -> [Float] { ToiletSynth.render(self) }
 }

@@ -62,15 +62,7 @@ struct TruckFlushView: View {
                         .position(receipt)
                 }
 
-                IslandContent(event: event, icons: Array(icons.prefix(3)), verb: "Picked up")
-                    .environment(\.colorScheme, .dark)
-                    .padding(.horizontal, 20)
-                    .frame(width: TruckRenderer.receiptSize.width, height: TruckRenderer.receiptSize.height)
-                    .background(.black, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
-                    .scaleEffect(0.85 + 0.15 * state.receiptOpacity)
-                    .blur(radius: (1 - state.receiptOpacity) * 5)
-                    .opacity(state.receiptOpacity)
+                ReceiptCard(event: event, icons: icons, verb: "Picked up", opacity: state.receiptOpacity)
                     .position(receipt)
             }
             .frame(width: scene.size.width, height: scene.size.height)
@@ -99,7 +91,6 @@ private struct TruckRenderer {
     let timeline: TruckTimeline
     let iconCount: Int
 
-    static let receiptSize = CGSize(width: 300, height: 64)
     /// From the rear door to the bumper, and from the road to the roof.
     private static let length: CGFloat = 190
     private static let height: CGFloat = 100
@@ -160,11 +151,8 @@ private struct TruckRenderer {
 
     /// Above the truck's roof over the Trash, kept on the screen.
     func receiptCenter(dockTrash: CGPoint) -> CGPoint {
-        let size = Self.receiptSize
-        let lift = Self.height * scale + size.height / 2 + 18
-        let point = road(under: dockTrash) + scene.away * lift
-        return CGPoint(x: min(max(point.x, size.width / 2 + 12), scene.size.width - size.width / 2 - 12),
-                       y: min(max(point.y, size.height / 2 + 12), scene.size.height - size.height / 2 - 12))
+        let lift = Self.height * scale + ReceiptCard.size.height / 2 + 18
+        return ReceiptCard.clamped(road(under: dockTrash) + scene.away * lift, in: scene.size)
     }
 
     // MARK: Where the truck is

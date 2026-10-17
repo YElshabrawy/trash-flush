@@ -14,6 +14,7 @@ Empty the Trash the usual way (Finder, ⌘⇧⌫, right-click the Dock icon). Th
 - **A menu bar Trash that fills up**: the icon fills as your Trash does. Past the size you pick in the menu (5 GB by default), its lid pops open and flies buzz around it until you flush.
 - **Notch animation**: the files are the real icons of what you deleted (Finder icons, and Quick Look previews for photos and documents). They climb up out of the Dock's own Trash (or, with the Dock hidden, a stand-in that peeks up from the screen edge, bounces as it throws each one and turns empty after the last). They fan out along springy arcs, stretch as they speed up and shrink into the notch, which opens wider as each one arrives and bounces as it gulps. Past 12 files the rest follow as a quick stream of small icons.
 - **Garbage truck animation** (pick it under *Animation* in the menu): a little green truck drives in along the Dock and brakes by the Trash, beacon blinking. Your files hop out of the Trash into its hopper, the door chomps twice, and after a "beep beep" it drives off the other way, puffing exhaust. A receipt pops up over the Trash: "Picked up 12 items · 734 MB freed". It works with the Dock on any edge.
+- **Toilet flush animation**: a 🚽 springs up next to the Dock's Trash, bowl turned to face it. Your files arc out of the Trash and drop into the bowl, and the toilet bounces under each one. Then it flushes: water splashes out of the bowl and the toilet rumbles before it shrinks away and the receipt pops up.
 - **Works on every setup**: Macs without a notch, and external displays, get a black pill at the top of the screen instead. With an auto-hidden Dock, a stand-in Trash peeks up from the screen edge, throws the files and slides back down. The Dock can be at the bottom, left or right.
 - **Gulp sound**: generated in code. Each gulp is a soft water-drop note a step higher on a pentatonic scale, so a big empty plays a little rising melody, finished by a bell chord. No audio files ship with the app.
 - **Flush Now** in the menu: empties the Trash with the animation. You click twice to confirm, so there is no modal dialog to get in the way.
@@ -97,6 +98,7 @@ What Trash Flush does with that access: it lists the top-level items in `~/.Tras
 - **The window** (`OverlayPanel`): a borderless, non-activating `NSPanel` covering the screen, with `ignoresMouseEvents`, above the menu bar (so it can draw over the notch), with `.canJoinAllSpaces` and `.fullScreenAuxiliary`.
 - **The sound** (`GulpSynth`): rendered from the same timeline, so every note lands on its gulp. Each gulp is a sine that glides up into its pitch in about 20 ms (the shape of a water drop) with a touch of octave, climbing a pentatonic scale. A low thump starts it and a bell arpeggio ends it, with one soft echo. It renders in a few milliseconds into an in-memory WAV that `AVAudioPlayer` plays.
 - **The truck** (`TruckTimeline`, `TruckSynth`, `TruckFlushView`): built the same way. `TruckMotion` runs springs for the body's sag, the braking pitch and the hopper door, again as a pure function of time. The truck is drawn in code in its own coordinates and turned to sit on whichever edge the Dock is on. Its sound is an engine hum that idles and revs, a wooden "tok" per file on the same scale an octave lower, two clunks for the chomps, a horn and the bell.
+- **The flush** (`ToiletTimeline`, `ToiletSynth`, `ToiletFlushView`): the toilet is Apple's own 🚽 emoji, drawn once from the system emoji font and trimmed to its pixels, then flipped so the bowl faces the Trash. Springs give it its pop, overshoot and squash under each file, and files go behind it for the last part of their arc so they look like they drop into the bowl. Each file lands with a plop that falls in pitch, and the flush is a wobbling, falling gurgle full of bubbles.
 
 ## Project structure
 
@@ -108,6 +110,7 @@ Sources/TrashFlushCore/       Plain Swift (Foundation only), unit-tested
   NotchTimeline.swift           animation timing, notch springs and flight arcs
   GulpSynth.swift, WAVEncoder   the gulp sound
   TruckTimeline, TruckSynth     the garbage truck's timing, springs and sound
+  ToiletTimeline, ToiletSynth   the toilet flush's timing, springs and sound
   TrashFullness.swift           how full the menu bar Trash looks
   FlushStats, TrashSnapshot
 Sources/TrashFlush/           The macOS app
@@ -115,8 +118,7 @@ Sources/TrashFlush/           The macOS app
   AppModel.swift                app state and actions (@Observable)
   Trash/TrashMonitor.swift      event-driven ~/.Trash watcher
   Trash/FileIconCache.swift     real icons and previews of the trashed files
-  Resources/confetti-burst.json the confetti (Lottie)
-  Overlay/                      finding the Dock's Trash and the notch, the panel, the SwiftUI view, confetti
+  Resources/confetti-burst.json the confetti (Lottie)  Overlay/                      finding the Dock's Trash and the notch, the panel, the SwiftUI view, confetti
   Menu/                         the menu bar window: button, stats, access banner
   Effects/SoundPlayer.swift     plays the synthesized sound
   System/                       launch at login, System Settings links
