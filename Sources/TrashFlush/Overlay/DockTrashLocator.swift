@@ -6,9 +6,13 @@ import ApplicationServices
 struct DockTrash {
     enum Edge { case bottom, left, right }
 
+    /// Where the icon sits while the Dock is showing, even if it is auto-hidden right now.
     var frame: CGRect
     var edge: Edge
     var screen: NSScreen
+    var isAutoHidden: Bool
+    /// Read from the Dock itself rather than estimated.
+    var isExact: Bool
 }
 
 /// Finds the Trash icon in the Dock.
@@ -32,12 +36,29 @@ enum DockTrashLocator {
         case "right": .right
         default: .bottom
         }
+        let hidden = dock?.bool(forKey: "autohide") ?? false
         if let frame = accessibilityFrame(),
            let screen = NSScreen.screens.first(where: { $0.frame.intersects(frame) }) ?? screen(for: edge) {
-            return DockTrash(frame: clamp(frame, to: screen.frame), edge: edge, screen: screen)
+            var frame = clamp(frame, to: screen.frame)
+            if hidden { frame = shown(frame, edge: edge, screen: screen) }
+            return DockTrash(frame: frame, edge: edge, screen: screen, isAutoHidden: hidden, isExact: true)
         }
         guard let screen = screen(for: edge) else { return nil }
-        return DockTrash(frame: estimatedFrame(edge: edge, screen: screen, dock: dock), edge: edge, screen: screen)
+        return DockTrash(frame: estimatedFrame(edge: edge, screen: screen, dock: dock), edge: edge, screen: screen,
+                         isAutoHidden: hidden, isExact: false)
+    }
+
+    /// A hidden Dock reports its icons tucked against (or past) the screen
+    /// edge. Moves the icon to where it sits when the Dock slides out.
+    private static func shown(_ frame: CGRect, edge: DockTrash.Edge, screen: NSScreen) -> CGRect {
+        var frame = frame
+        let inset: CGFloat = 10
+        switch edge {
+        case .bottom: frame.origin.y = screen.frame.minY + inset
+        case .left: frame.origin.x = screen.frame.minX + inset
+        case .right: frame.origin.x = screen.frame.maxX - inset - frame.width
+        }
+        return frame
     }
 
     // MARK: Accessibility

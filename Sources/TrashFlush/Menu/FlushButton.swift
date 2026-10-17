@@ -28,7 +28,7 @@ struct FlushButton: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .tint(armed ? .red : model.theme.palette.water)
+            .tint(armed ? .red : .accentColor)
             .disabled(!canFlush)
 
             if armed {

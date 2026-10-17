@@ -3,18 +3,32 @@ import Testing
 @testable import TrashFlushCore
 
 @Suite struct SoundTests {
-    @Test(arguments: FlushTheme.allCases)
-    func everyThemeRendersAnAudibleClipThatDoesNotClip(theme: FlushTheme) {
-        let samples = FlushSynth.render(theme.sound, sampleRate: 22_050)
+    @Test(arguments: [1, 12, 40])
+    func rendersAnAudibleClipThatDoesNotClip(itemCount: Int) {
+        let timeline = NotchTimeline(itemCount: itemCount, peeksTrash: false, reduceMotion: false)
+        let samples = GulpSynth.render(timeline, sampleRate: 22_050)
         let peak = samples.reduce(0) { max($0, abs($1)) }
-        #expect(samples.count == Int(theme.sound.duration * 22_050))
-        #expect(peak > 0.3)
-        #expect(peak <= 0.851)
+        #expect(samples.count == Int((timeline.total + 0.6) * 22_050))
+        #expect(peak > 0.2)
+        #expect(peak <= 0.801)
+    }
+
+    @Test func isSilentBeforeTheFirstFileLeaves() {
+        let timeline = NotchTimeline(itemCount: 5, peeksTrash: true, reduceMotion: false)
+        let samples = GulpSynth.render(timeline, sampleRate: 8_000)
+        let firstLaunch = Int(timeline.flights[0].start * 8_000)
+        #expect(samples[..<firstLaunch].allSatisfy { $0 == 0 })
+    }
+
+    @Test func gulpsClimbTheScale() {
+        #expect(GulpSynth.scale == GulpSynth.scale.sorted())
+        #expect(GulpSynth.scale.count == NotchTimeline.maxFlights)
+        #expect(abs(GulpSynth.note(12) - 2 * GulpSynth.note(0)) < 1e-9)
     }
 
     @Test func renderingIsDeterministic() {
-        let recipe = FlushTheme.classic.sound
-        #expect(FlushSynth.render(recipe, sampleRate: 8_000) == FlushSynth.render(recipe, sampleRate: 8_000))
+        let timeline = NotchTimeline(itemCount: 12, peeksTrash: false, reduceMotion: false)
+        #expect(GulpSynth.render(timeline, sampleRate: 8_000) == GulpSynth.render(timeline, sampleRate: 8_000))
     }
 
     @Test func wavHeaderIsValid() {

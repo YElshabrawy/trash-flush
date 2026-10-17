@@ -3,7 +3,7 @@ import Foundation
 /// Wraps samples in a 16-bit mono WAV file in memory, which AVAudioPlayer can
 /// play directly with `AVAudioPlayer(data:)`.
 public enum WAVEncoder {
-    public static func encode(_ samples: [Float], sampleRate: Int = Int(FlushSynth.sampleRate)) -> Data {
+    public static func encode(_ samples: [Float], sampleRate: Int = Int(GulpSynth.sampleRate)) -> Data {
         let bytesPerSample = 2
         let dataSize = samples.count * bytesPerSample
         var data = Data(capacity: 44 + dataSize)

@@ -22,18 +22,24 @@ BIN_DIR="$(mktemp -d)"
 if [ "${UNIVERSAL:-1}" = "1" ]; then
   for arch in arm64 x86_64; do
     swift build -c "$CONFIG" --triple "$arch-apple-macosx14.0"
-    cp "$(swift build -c "$CONFIG" --triple "$arch-apple-macosx14.0" --show-bin-path)/TrashFlush" "$BIN_DIR/TrashFlush-$arch"
+    PRODUCTS="$(swift build -c "$CONFIG" --triple "$arch-apple-macosx14.0" --show-bin-path)"
+    cp "$PRODUCTS/TrashFlush" "$BIN_DIR/TrashFlush-$arch"
   done
   lipo -create "$BIN_DIR"/TrashFlush-* -output "$BIN_DIR/TrashFlush"
 else
   swift build -c "$CONFIG"
-  cp "$(swift build -c "$CONFIG" --show-bin-path)/TrashFlush" "$BIN_DIR/TrashFlush"
+  PRODUCTS="$(swift build -c "$CONFIG" --show-bin-path)"
+  cp "$PRODUCTS/TrashFlush" "$BIN_DIR/TrashFlush"
 fi
 
-# 2. Assemble the bundle: binary + Info.plist + icon.
+# 2. Assemble the bundle: binary + Info.plist + icon, plus Lottie (a universal
+# dynamic framework) and the resource bundle with the confetti animation.
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 cp "$BIN_DIR/TrashFlush" "$APP/Contents/MacOS/TrashFlush"
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/TrashFlush"
+cp -R "$PRODUCTS/Lottie.framework" "$APP/Contents/Frameworks/"
+cp -R "$PRODUCTS/TrashFlush_TrashFlush.bundle" "$APP/Contents/Resources/"
 PLIST="$APP/Contents/Info.plist"
 cp Support/Info.plist "$PLIST"
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$PLIST"
@@ -58,13 +64,21 @@ rm -rf "$WORK" "$BIN_DIR"
 # 3. Sign. macOS remembers Full Disk Access per code signature, so a stable
 # identity (Apple Development or Developer ID) keeps the permission across
 # rebuilds. Ad hoc signatures change every build and need re-granting.
+# Lottie is re-signed with the same identity: the hardened runtime only loads
+# frameworks signed by the app's own team. Nested code is signed first.
 IDENTITY="${SIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null \
   | awk -F'"' '/Developer ID Application|Apple Development/ {print $2; exit}')}"
 if [ -n "$IDENTITY" ] && [ "$IDENTITY" != "-" ]; then
+  codesign --force --options runtime --timestamp --sign "$IDENTITY" "$APP/Contents/Frameworks/Lottie.framework"
   codesign --force --options runtime --timestamp --sign "$IDENTITY" "$APP"
   echo "Signed with: $IDENTITY"
 else
-  codesign --force --sign - "$APP"
+  # An ad hoc signature is identified by the hash of this exact build, so
+  # macOS would forget Accessibility and Full Disk Access on every rebuild
+  # while System Settings still shows the old build as allowed. Naming the
+  # bundle identifier as the requirement keeps them across rebuilds.
+  codesign --force --sign - "$APP/Contents/Frameworks/Lottie.framework"
+  codesign --force --sign - -r="designated => identifier \"$BUNDLE_ID\"" "$APP"
   echo "Signed ad hoc (no signing identity found)"
 fi
 codesign --verify --strict "$APP"

@@ -15,13 +15,6 @@ final class AppModel {
     /// Whether we can ask the Dock exactly where the Trash is (Accessibility).
     private(set) var locatesTrashPrecisely = DockTrashLocator.isPrecise
 
-    var theme: FlushTheme {
-        didSet {
-            defaults.set(theme.rawValue, forKey: Keys.theme)
-            sound.prepare(theme)
-        }
-    }
-
     var launchAtLogin: Bool {
         get { loginItemEnabled }
         set { setLaunchAtLogin(newValue) }
@@ -34,24 +27,20 @@ final class AppModel {
     private let defaults = UserDefaults.standard
     private let overlay = OverlayController()
     private let sound = SoundPlayer()
-    private var soundTask: Task<Void, Never>?
     private let icons: FileIconCache
 
     private enum Keys {
-        static let theme = "theme"
         static let soundEnabled = "soundEnabled"
         static let stats = "stats"
     }
 
     init() {
         let defaults = UserDefaults.standard
-        theme = defaults.string(forKey: Keys.theme).flatMap(FlushTheme.init(rawValue:)) ?? .classic
         soundEnabled = defaults.object(forKey: Keys.soundEnabled) as? Bool ?? true
         stats = defaults.data(forKey: Keys.stats)
             .flatMap { try? JSONDecoder().decode(FlushStats.self, from: $0) } ?? FlushStats()
         icons = FileIconCache(folder: monitor.folder.url)
 
-        sound.prepare(theme)
         monitor.onFlush = { [weak self] event in self?.didFlush(event) }
         monitor.onSnapshot = { [weak self] snapshot in self?.icons.update(for: snapshot) }
         monitor.start()
@@ -135,15 +124,8 @@ final class AppModel {
     }
 
     private func play(_ event: FlushEvent) {
-        overlay.play(event, icons: icons.icons(for: event.sampleNames), theme: theme)
-        soundTask?.cancel()
-        guard soundEnabled else { return }
-        let theme = theme
-        soundTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(FlushTimeline.flushStart))
-            guard !Task.isCancelled else { return }
-            self?.sound.play(theme)
-        }
+        guard let timeline = overlay.play(event, icons: icons.icons(for: event.sampleNames)) else { return }
+        if soundEnabled { sound.play(timeline) }
     }
 
     private func saveStats() {

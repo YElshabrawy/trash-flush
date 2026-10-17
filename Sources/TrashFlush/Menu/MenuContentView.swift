@@ -26,8 +26,6 @@ struct MenuContentView: View {
 
             Divider()
 
-            ThemePicker(selection: $model.theme)
-
             VStack(spacing: 8) {
                 SettingRow(title: "Flush sound", isOn: $model.soundEnabled)
                 SettingRow(title: "Launch at login", isOn: $model.launchAtLogin)
@@ -36,12 +34,17 @@ struct MenuContentView: View {
                                                 : Text("Available when running the built TrashFlush.app"))
                 if !model.locatesTrashPrecisely {
                     HStack {
-                        Text("Exact Dock Trash position")
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Exact Dock Trash position")
+                            Text("Already on in Settings? Turn it off and on again.")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                         Spacer()
                         Button("Allow…") { model.allowDockAccess() }
                             .controlSize(.small)
                     }
-                    .help("The toilet appears next to the Trash in your Dock. Without Accessibility access its position is estimated.")
+                    .help("Files fly out of the Trash in your Dock. Without Accessibility access its position is estimated.")
                 }
             }
 
@@ -66,7 +69,8 @@ struct MenuContentView: View {
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 36, height: 36)
-                .background(model.theme.palette.gradient, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .background(LinearGradient(colors: [Color(white: 0.24), .black], startPoint: .top, endPoint: .bottom),
+                            in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             VStack(alignment: .leading, spacing: 1) {
                 Text("Trash Flush").font(.headline)
                 Text(model.trashSummary)
