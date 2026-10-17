@@ -10,7 +10,7 @@ struct TrashFlushApp: App {
         MenuBarExtra {
             MenuContentView(model: model)
         } label: {
-            Image(systemName: AppSymbol.toilet)
+            Image(nsImage: model.menuBarIcon.image)
                 .accessibilityLabel("Trash Flush")
         }
         .menuBarExtraStyle(.window)

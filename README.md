@@ -11,6 +11,7 @@ Empty the Trash the usual way (Finder, ⌘⇧⌫, right-click the Dock icon). Th
 
 ## Features
 
+- **A menu bar Trash that fills up**: the icon fills as your Trash does. Past the size you pick in the menu (5 GB by default), its lid pops open and flies buzz around it until you flush.
 - **Notch animation**: the files are the real icons of what you deleted (Finder icons, and Quick Look previews for photos and documents). They climb up out of the Dock's own Trash (or, with the Dock hidden, a stand-in that peeks up from the screen edge, bounces as it throws each one and turns empty after the last). They fan out along springy arcs, stretch as they speed up and shrink into the notch, which opens wider as each one arrives and bounces as it gulps. Past 12 files the rest follow as a quick stream of small icons.
 - **Works on every setup**: Macs without a notch, and external displays, get a black pill at the top of the screen instead. With an auto-hidden Dock, a stand-in Trash peeks up from the screen edge, throws the files and slides back down. The Dock can be at the bottom, left or right.
 - **Gulp sound**: generated in code. Each gulp is a soft water-drop note a step higher on a pentatonic scale, so a big empty plays a little rising melody, finished by a bell chord. No audio files ship with the app.

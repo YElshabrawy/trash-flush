@@ -24,6 +24,22 @@ final class AppModel {
         didSet { defaults.set(soundEnabled, forKey: Keys.soundEnabled) }
     }
 
+    /// Past this size the menu bar Trash starts to smell. Zero turns that off.
+    var trashLimit: Int64 {
+        didSet {
+            defaults.set(trashLimit, forKey: Keys.trashLimit)
+            updateMenuBarIcon()
+        }
+    }
+
+    let menuBarIcon = MenuBarIcon()
+
+    var fullness: TrashFullness {
+        guard monitor.access == .granted else { return .empty }
+        let snapshot = monitor.snapshot
+        return TrashFullness(bytes: snapshot.totalBytes, isEmpty: snapshot.isEmpty, limit: trashLimit)
+    }
+
     private let defaults = UserDefaults.standard
     private let overlay = OverlayController()
     private let sound = SoundPlayer()
@@ -32,17 +48,22 @@ final class AppModel {
     private enum Keys {
         static let soundEnabled = "soundEnabled"
         static let stats = "stats"
+        static let trashLimit = "trashLimit"
     }
 
     init() {
         let defaults = UserDefaults.standard
         soundEnabled = defaults.object(forKey: Keys.soundEnabled) as? Bool ?? true
+        trashLimit = (defaults.object(forKey: Keys.trashLimit) as? NSNumber)?.int64Value ?? TrashFullness.defaultLimit
         stats = defaults.data(forKey: Keys.stats)
             .flatMap { try? JSONDecoder().decode(FlushStats.self, from: $0) } ?? FlushStats()
         icons = FileIconCache(folder: monitor.folder.url)
 
         monitor.onFlush = { [weak self] event in self?.didFlush(event) }
-        monitor.onSnapshot = { [weak self] snapshot in self?.icons.update(for: snapshot) }
+        monitor.onSnapshot = { [weak self] snapshot in
+            self?.icons.update(for: snapshot)
+            self?.updateMenuBarIcon()
+        }
         monitor.start()
     }
 
@@ -54,7 +75,8 @@ final class AppModel {
             let snapshot = monitor.snapshot
             if snapshot.isEmpty { return "Trash is empty" }
             let items = snapshot.count == 1 ? "1 item" : "\(snapshot.count) items"
-            return "\(items) · \(snapshot.totalBytes.formatted(.byteCount(style: .file)))"
+            let size = snapshot.totalBytes.formatted(.byteCount(style: .file))
+            return fullness.isOverflowing ? "\(size) · time to flush" : "\(items) · \(size)"
         }
     }
 
@@ -126,6 +148,10 @@ final class AppModel {
     private func play(_ event: FlushEvent) {
         guard let timeline = overlay.play(event, icons: icons.icons(for: event.sampleNames)) else { return }
         if soundEnabled { sound.play(timeline) }
+    }
+
+    private func updateMenuBarIcon() {
+        menuBarIcon.show(fullness)
     }
 
     private func saveStats() {

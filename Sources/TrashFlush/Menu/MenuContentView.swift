@@ -28,6 +28,19 @@ struct MenuContentView: View {
 
             VStack(spacing: 8) {
                 SettingRow(title: "Flush sound", isOn: $model.soundEnabled)
+                HStack {
+                    Text("Smelly Trash at")
+                    Spacer()
+                    Picker("Smelly Trash at", selection: $model.trashLimit) {
+                        ForEach(TrashFullness.limits, id: \.self) { limit in
+                            Text(limit > 0 ? limit.formatted(.byteCount(style: .file)) : "Never").tag(limit)
+                        }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
+                    .controlSize(.small)
+                }
+                .help("Past this size, flies buzz around the menu bar Trash until you flush")
                 SettingRow(title: "Launch at login", isOn: $model.launchAtLogin)
                     .disabled(!LoginItem.isAvailable)
                     .help(LoginItem.isAvailable ? Text("Start Trash Flush when you log in")
