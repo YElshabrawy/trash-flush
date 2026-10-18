@@ -100,7 +100,8 @@ private struct ToiletRenderer {
     let iconCount: Int
 
     /// Apple's 🚽, trimmed to its drawing. It fills its square, bowl on the left.
-    static let art = emojiArt("🚽")
+    /// Never mutated after it's drawn, so sharing it across threads is safe.
+    nonisolated(unsafe) static let art = emojiArt("🚽")
     /// The seat's opening, as a fraction of the emoji from its top left.
     private static let seat = CGPoint(x: 0.34, y: 0.45)
     /// Past this far into its flight, a file is dropping into the bowl and goes behind the toilet.
