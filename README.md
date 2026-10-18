@@ -17,11 +17,7 @@
   <a href="#build-from-source">Build from source&nbsp;&rsaquo;</a>
 </p>
 
-<p align="center">
-  <a href="docs/promo.mp4">
-    <img src="docs/images/promo-poster.jpg" width="720" alt="Watch the 30-second Trash Flush film, with sound.">
-  </a>
-</p>
+https://github.com/user-attachments/assets/ca9255a6-b5ac-4e18-ad6f-39276dde2b9b
 
 <br>
 
