@@ -17,6 +17,7 @@ Empty the Trash the usual way (Finder, ⌘⇧⌫, right-click the Dock icon). Th
 - **Toilet flush animation**: a 🚽 springs up next to the Dock's Trash, bowl turned to face it. Your files arc out of the Trash and drop into the bowl, and the toilet bounces under each one. Then it flushes: water splashes out of the bowl and the toilet rumbles before it shrinks away and the receipt pops up.
 - **Works on every setup**: Macs without a notch, and external displays, get a black pill at the top of the screen instead. With an auto-hidden Dock, a stand-in Trash peeks up from the screen edge, throws the files and slides back down. The Dock can be at the bottom, left or right.
 - **Gulp sound**: generated in code. Each gulp is a soft water-drop note a step higher on a pentatonic scale, so a big empty plays a little rising melody, finished by a bell chord. No audio files ship with the app.
+- **Find Junk**: one click lists what's safe to throw away: installers (DMG, PKG, ZIP, XIP, ISO) in Downloads and screenshots older than a week, Xcode's DerivedData, old device support files and simulator caches, and app caches over 100 MB. Results show up while the scan is still running. Everything starts checked; untick what you want to keep (right-click an item to show it in Finder), move the rest to the Trash, and flush.
 - **Flush Now** in the menu: empties the Trash with the animation. You click twice to confirm, so there is no modal dialog to get in the way.
 - **Stats**: number of flushes, items flushed, space freed and when you last flushed. Right-click the stats to reset them.
 - **Doesn't get in your way**: the overlay is click-through, never takes keyboard focus and shows on every Space (full-screen apps included), on the display that has the Dock.
@@ -99,6 +100,7 @@ What Trash Flush does with that access: it lists the top-level items in `~/.Tras
 - **The sound** (`GulpSynth`): rendered from the same timeline, so every note lands on its gulp. Each gulp is a sine that glides up into its pitch in about 20 ms (the shape of a water drop) with a touch of octave, climbing a pentatonic scale. A low thump starts it and a bell arpeggio ends it, with one soft echo. It renders in a few milliseconds into an in-memory WAV that `AVAudioPlayer` plays.
 - **The truck** (`TruckTimeline`, `TruckSynth`, `TruckFlushView`): built the same way. `TruckMotion` runs springs for the body's sag, the braking pitch and the hopper door, again as a pure function of time. The truck is drawn in code in its own coordinates and turned to sit on whichever edge the Dock is on. Its sound is an engine hum that idles and revs, a wooden "tok" per file on the same scale an octave lower, two clunks for the chomps, a horn and the bell.
 - **The flush** (`ToiletTimeline`, `ToiletSynth`, `ToiletFlushView`): the toilet is Apple's own 🚽 emoji, drawn once from the system emoji font and trimmed to its pixels, then flipped so the bowl faces the Trash. Springs give it its pop, overshoot and squash under each file, and files go behind it for the last part of their arc so they look like they drop into the bowl. Each file lands with a plop that falls in pitch, and the flush is a wobbling, falling gurgle full of bubbles.
+- **Find Junk** (`JunkScanner`, `DiskUsage`, `FlushSuggestions`): the four categories are scanned at once and every candidate is measured in its own task, handed to the list the moment it's done. Measuring folders is the slow part, so `DiskUsage` reads each directory with `getattrlistbulk` (names, types and sizes in bulk, no `stat` per file) and walks subfolders in parallel. On a 20 GB caches folder with 60,000 subfolders that takes about 3 seconds, against 17 with `fts` and 19 with `FileManager`. Items go to the Trash with `FileManager.trashItem`, so nothing is deleted until you flush.
 
 ## Project structure
 
@@ -112,6 +114,7 @@ Sources/TrashFlushCore/       Plain Swift (Foundation only), unit-tested
   TruckTimeline, TruckSynth     the garbage truck's timing, springs and sound
   ToiletTimeline, ToiletSynth   the toilet flush's timing, springs and sound
   TrashFullness.swift           how full the menu bar Trash looks
+  JunkScanner, DiskUsage        finding safe junk and measuring folders fast
   FlushStats, TrashSnapshot
 Sources/TrashFlush/           The macOS app
   TrashFlushApp.swift           @main, MenuBarExtra
@@ -120,6 +123,7 @@ Sources/TrashFlush/           The macOS app
   Trash/FileIconCache.swift     real icons and previews of the trashed files
   Resources/confetti-burst.json the confetti (Lottie)  Overlay/                      finding the Dock's Trash and the notch, the panel, the SwiftUI view, confetti
   Menu/                         the menu bar window: button, stats, access banner
+  Suggestions/                  Find Junk: the scan, the review list
   Effects/SoundPlayer.swift     plays the synthesized sound
   System/                       launch at login, System Settings links
 Support/Info.plist            LSUIElement (no Dock icon), bundle info

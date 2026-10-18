@@ -22,6 +22,10 @@ struct MenuContentView: View {
                     .foregroundStyle(.orange)
             }
 
+            if model.monitor.access == .granted {
+                SuggestionsSection(suggestions: model.suggestions)
+            }
+
             StatsGrid(stats: model.stats) { model.resetStats() }
 
             Divider()

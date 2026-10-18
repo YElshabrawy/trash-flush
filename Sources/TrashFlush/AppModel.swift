@@ -37,6 +37,7 @@ final class AppModel {
     }
 
     let menuBarIcon = MenuBarIcon()
+    let suggestions = FlushSuggestions()
 
     var fullness: TrashFullness {
         guard monitor.access == .granted else { return .empty }
@@ -70,6 +71,7 @@ final class AppModel {
             self?.icons.update(for: snapshot)
             self?.updateMenuBarIcon()
         }
+        suggestions.onMoved = { [weak self] in self?.monitor.refresh() }
         monitor.start()
     }
 
