@@ -17,6 +17,12 @@
   <a href="#build-from-source">Build from source&nbsp;&rsaquo;</a>
 </p>
 
+<p align="center">
+  <a href="docs/promo.mp4">
+    <img src="docs/images/promo-poster.jpg" width="720" alt="Watch the 30-second Trash Flush film, with sound.">
+  </a>
+</p>
+
 <br>
 
 ## Empty the Trash. Enjoy the show.
