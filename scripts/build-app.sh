@@ -7,13 +7,14 @@
 #                       Application" or "Apple Development" identity found,
 #                       otherwise ad hoc)
 #        BUNDLE_ID      default: dev.trashflush.TrashFlush
+#        VERSION        the version users see, default: 1.0.0
 #        UNIVERSAL=0    build only for this Mac's architecture (faster)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 CONFIG="${1:-release}"
 APP="build/TrashFlush.app"
-VERSION="1.0.0"
+VERSION="${VERSION:-1.0.0}"
 BUILD_NUMBER="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
 BUNDLE_ID="${BUNDLE_ID:-dev.trashflush.TrashFlush}"
 
@@ -48,7 +49,7 @@ plutil -replace CFBundleIdentifier -string "$BUNDLE_ID" "$PLIST"
 plutil -lint "$PLIST" >/dev/null
 
 WORK="$(mktemp -d)"
-if swift scripts/make-icon.swift "$WORK/icon.png"; then
+if swift scripts/make-icon.swift Support/icon-art.jpg "$WORK/icon.png"; then
   ICONSET="$WORK/TrashFlush.iconset"
   mkdir -p "$ICONSET"
   for s in 16 32 128 256 512; do

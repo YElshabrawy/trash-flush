@@ -92,12 +92,9 @@ struct MenuContentView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            Image(systemName: AppSymbol.toilet)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 36, height: 36)
-                .background(LinearGradient(colors: [Color(white: 0.24), .black], startPoint: .top, endPoint: .bottom),
-                            in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 40, height: 40)
             VStack(alignment: .leading, spacing: 1) {
                 Text("Trash Flush").font(.headline)
                 Text(model.trashSummary)

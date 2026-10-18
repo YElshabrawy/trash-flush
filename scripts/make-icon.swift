@@ -1,8 +1,12 @@
-// Draws the app icon in code, so the repo needs no image assets.
-// Usage: swift scripts/make-icon.swift output.png
+// Turns the square icon artwork into a macOS app icon: masked to Apple's
+// rounded-square shape on the standard 1024 grid, with its drop shadow.
+// Usage: swift scripts/make-icon.swift Support/icon-art.jpg output.png
 import AppKit
 
-let output = CommandLine.arguments.dropFirst().first ?? "icon.png"
+let arguments = Array(CommandLine.arguments.dropFirst())
+guard arguments.count == 2, let art = NSImage(contentsOfFile: arguments[0]) else {
+    fatalError("Usage: make-icon.swift <artwork> <output.png>")
+}
 let canvas = 1024
 
 guard let rep = NSBitmapImageRep(
@@ -13,11 +17,11 @@ else { fatalError("Could not create bitmap") }
 
 NSGraphicsContext.saveGraphicsState()
 NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+NSGraphicsContext.current?.imageInterpolation = .high
 
 // Apple's icon grid: an 824 pt rounded square centered in the 1024 canvas.
 let body = NSRect(x: 100, y: 100, width: 824, height: 824)
 let shape = NSBezierPath(roundedRect: body, xRadius: 185, yRadius: 185)
-let center = NSPoint(x: body.midX, y: body.midY)
 
 let shadow = NSShadow()
 shadow.shadowColor = NSColor.black.withAlphaComponent(0.3)
@@ -29,42 +33,17 @@ NSColor.black.setFill()
 shape.fill()
 NSGraphicsContext.restoreGraphicsState()
 
-let deep = NSColor(red: 0.02, green: 0.10, blue: 0.32, alpha: 1)
-let water = NSColor(red: 0.08, green: 0.44, blue: 0.86, alpha: 1)
-let shallow = NSColor(red: 0.55, green: 0.86, blue: 1.00, alpha: 1)
-NSGradient(colors: [shallow, water, deep])?.draw(in: shape, angle: -65)
-
-// Swirl arms, the same spiral the animation uses.
 NSGraphicsContext.saveGraphicsState()
 shape.addClip()
-for arm in 0..<5 {
-    let phase = Double(arm) * 2 * .pi / 5
-    let spiral = NSBezierPath()
-    for step in 0...60 {
-        let u = Double(step) / 60
-        let radius = 560 * pow(1 - u, 1.3)
-        let angle = phase + 2.6 * (pow(1 - u * 0.92, -0.9) - 1)
-        let point = NSPoint(x: center.x + radius * cos(angle), y: center.y + radius * sin(angle))
-        if step == 0 { spiral.move(to: point) } else { spiral.line(to: point) }
-    }
-    spiral.lineWidth = 34
-    spiral.lineCapStyle = .round
-    NSColor.white.withAlphaComponent(0.16).setStroke()
-    spiral.stroke()
-}
+art.draw(in: body, from: .zero, operation: .copy, fraction: 1)
+// A hairline of light along the edge, like Apple's own icons.
+NSColor.white.withAlphaComponent(0.25).setStroke()
+shape.lineWidth = 4
+shape.stroke()
 NSGraphicsContext.restoreGraphicsState()
-
-let config = NSImage.SymbolConfiguration(pointSize: 430, weight: .semibold)
-    .applying(NSImage.SymbolConfiguration(paletteColors: [.white]))
-if let symbol = NSImage(systemSymbolName: "toilet.fill", accessibilityDescription: nil)?
-    .withSymbolConfiguration(config) {
-    let size = symbol.size
-    symbol.draw(in: NSRect(x: center.x - size.width / 2, y: center.y - size.height / 2,
-                           width: size.width, height: size.height))
-}
 
 NSGraphicsContext.restoreGraphicsState()
 
 guard let png = rep.representation(using: .png, properties: [:]) else { fatalError("Could not encode PNG") }
-try png.write(to: URL(fileURLWithPath: output))
-print("Wrote \(output)")
+try png.write(to: URL(fileURLWithPath: arguments[1]))
+print("Wrote \(arguments[1])")

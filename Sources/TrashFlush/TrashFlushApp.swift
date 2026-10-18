@@ -25,10 +25,3 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
     }
 }
-
-@MainActor
-enum AppSymbol {
-    /// "toilet" arrived in SF Symbols 4; fall back to a trash can just in case.
-    static let toilet = NSImage(systemSymbolName: "toilet.fill", accessibilityDescription: nil) != nil
-        ? "toilet.fill" : "trash.fill"
-}
